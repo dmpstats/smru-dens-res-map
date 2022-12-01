@@ -9,6 +9,6 @@ logMu <- function(mu, sigma){
 
 logSigma <- function(mu, sigma){
   
-  log(1+sigma^2/mu^2)
+  sqrt(log(1+sigma^2/mu^2))
   
 }
