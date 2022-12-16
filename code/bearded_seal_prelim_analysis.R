@@ -14,6 +14,9 @@
   
   rawRes <- readxl::read_xlsx("data/Bearded_seal_Density_RES_Data.xlsx", sheet = "Bearded s(P1)")
   
+  resGrid <- read_csv("data/Bearded_seal.csv") %>%
+    rename(RES = `Overall Probability`)
+  
   # Coding of missing values are "-", several numeric fields interpreted as char
   
   beardSealData <- rawRes %>%
@@ -28,13 +31,26 @@
 # Preliminary explorations --------------------------------------------------------------------
 
   # plot basic data to regress
+  
+ 
   regPlot <- ggplot(beardSealData, x = RES, y = Density) + 
     geom_point(aes(RES, Density), alpha = 0.4, position = position_jitter()) +
     geom_smooth(aes(RES, Density)) +
-    ggthemes::theme_fivethirtyeight()
+    ggthemes::theme_fivethirtyeight() +
+    ggtitle("Density vs RES", "Bearded Seals")
 
   regPlot  
 
+  plottingDF <- beardSealData %>% filter(Density < 2)
+  
+  regPlot <- ggplot(plottingDF, x = RES, y = Density) + 
+    geom_point(aes(RES, Density), alpha = 0.4, position = position_jitter()) +
+    geom_smooth(aes(RES, Density)) +
+    ggthemes::theme_fivethirtyeight() +
+    ggtitle("Density vs RES", "Bearded Seals")
+  
+  regPlot  
+  
   
   
   
@@ -63,11 +79,32 @@
   monPlot <- ggplot(monPredData) +
     geom_point(aes(RES, Density), alpha = 0.4) +
     geom_line(aes(RES, pred), size = 2, col = "purple", alpha = 0.6) +
-    ggthemes::theme_fivethirtyeight()
+    ggthemes::theme_fivethirtyeight() +
+    ggtitle("Fitted function", "Bearded seal: observed densities & monotone fit")
     
   monPlot
   
+  plottingDF <- monPredData %>% filter(Density < 2)
   
+  monPlot <- ggplot(plottingDF) +
+    geom_point(aes(RES, Density), alpha = 0.4) +
+    geom_line(aes(RES, pred), size = 2, col = "purple", alpha = 0.6) +
+    ggthemes::theme_fivethirtyeight() +
+    ggtitle("Fitted mean function", "Bearded seal: observed densities & monotone fit")
+  
+  monPlot
+  
+  
+  monGAMPreds <- scam::predict.scam(monGAM, newdata = resGrid)
+  
+  predictionOutput <- resGrid %>%
+    mutate(PredDensity = monGAMPreds,
+           PredDensity = ifelse(PredDensity < 0, 0, PredDensity))
+  
+  write.csv(predictionOutput, file = "data/Bearded_seal_predictions.csv", row.names = F)
+  
+  ggplot(predictionOutput) + geom_raster(aes(x = `Center Long`, y = `Center Lat`, fill = PredDensity)) +
+    scale_fill_viridis_c()
   
 
 # Adding survey uncertainty -------------------------------------------------------------------
@@ -113,7 +150,7 @@
   
   dataList <- split(beardSealData, beardSealData$blockID)
   
-  sampleList <- lapply(dataList, function(q){sampleLN(q$Density[1], q$workingSE[1], 10)})
+  sampleList <- lapply(dataList, function(q){sampleLN(q$Density[1], q$workingSE[1], 1000)})
   
   sampleDF <- plyr::ldply(sampleList) %>%
     mutate(`Area/Segment` = str_extract(.id, "(?<=:).+"),
@@ -124,15 +161,56 @@
   beardSealSamples <- beardSealData %>% left_join(sampleDF)
   
   
-  beardSealSamples %>% 
+  beardSealSamples <- beardSealSamples %>% 
     select(-Density) %>%
-    pivot_longer(names_to = "sampleID", values_to = "Density", V1:V10) %>%
-    group_by(sampleID) %>%
-    nest() %>%
-    mutate(PredVals =  map_df(data, function(q){modFit <- scam::scam(Density ~ s(RES, bs = "mpi")-1, data = q); data.frame(fitted = modFit$fitted.values)})) %>%
-    mutate(PredVals = map2(data, PredVals, bind_cols))
+    pivot_longer(names_to = "sampleID", values_to = "Density", V1:V1000) 
   
+  
+  beardSealList <- split(beardSealSamples, beardSealSamples$sampleID)
+  
+  gamFit <- function(inData){
     
+    workingFit <- scam::scam(Density ~ s(RES, bs = "mpi")-1, data = inData)
+    
+    outData <- inData %>%
+      select(sampleID, Lat, Long, RES) %>%
+      mutate(Pred = workingFit$fitted.values)
+    
+    
+    outData
+    
+  }
+  
+  
+  fittedList <- lapply(beardSealList, gamFit) 
+  
+  fittedDF <- fittedList %>% 
+    bind_rows() 
+  
+  fittedMatrix <- matrix(fittedDF$Pred, ncol = 1000)
+  
+  test <- t(apply(fittedMatrix, 1, function(q){quantile(q, probs = c(0.025, 0.5, 0.975))}))
+  
+  testSE <- apply(fittedMatrix, 1, sd)
+  
+  test <- as.data.frame(test) %>%
+    mutate(RES = beardSealData$RES, Density = beardSealData$Density, SE = testSE) %>%
+    rename(lower = `2.5%`, med = `50%`, upper = `97.5%`) %>%
+    mutate(CV = SE/med,
+           CV = ifelse(CV > 2, 2, CV)) %>%
+    arrange(RES)
+  
+  plottingDF <- test %>% filter(Density < 2)
+  
+  ggplot(plottingDF) + 
+    ggthemes::theme_fivethirtyeight() +
+    geom_point(aes(RES, Density), size = 2, alpha = 0.2) +
+    geom_line(aes(RES, med), size = 2, alpha = 0.7, col = "purple") +
+    geom_ribbon(aes(x = RES, ymin = lower, ymax = upper), fill = "purple", alpha = 0.2) + 
+    ggtitle("Fitted function", "Bearded seal: observed densities & monotone fit") +
+    ylim(0, 0.6)
+  
+  
   
 
 # Scratch -------------------------------------------------------------------------------------
