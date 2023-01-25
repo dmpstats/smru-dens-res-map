@@ -95,17 +95,6 @@
   monPlot
   
   
-  monGAMPreds <- scam::predict.scam(monGAM, newdata = resGrid)
-  
-  predictionOutput <- resGrid %>%
-    mutate(PredDensity = monGAMPreds,
-           PredDensity = ifelse(PredDensity < 0, 0, PredDensity))
-  
-  write.csv(predictionOutput, file = "data/Bearded_seal_predictions.csv", row.names = F)
-  
-  ggplot(predictionOutput) + geom_raster(aes(x = `Center Long`, y = `Center Lat`, fill = PredDensity)) +
-    scale_fill_viridis_c()
-  
 
 # Adding survey uncertainty -------------------------------------------------------------------
 #' Here devise resampling for the different sorts of uncertainty that are present in the survey data
@@ -149,6 +138,8 @@
   # sample for each of the area/segments collectively (as not independent)  
   
   dataList <- split(beardSealData, beardSealData$blockID)
+  
+  set.seed(4835)
   
   sampleList <- lapply(dataList, function(q){sampleLN(q$Density[1], q$workingSE[1], 1000)})
   
@@ -196,8 +187,8 @@
   test <- as.data.frame(test) %>%
     mutate(RES = beardSealData$RES, Density = beardSealData$Density, SE = testSE) %>%
     rename(lower = `2.5%`, med = `50%`, upper = `97.5%`) %>%
-    mutate(CV = SE/med,
-           CV = ifelse(CV > 2, 2, CV)) %>%
+    mutate(CV = SE/med) %>%
+           #CV = ifelse(CV > 2, 2, CV)) %>%
     arrange(RES)
   
   plottingDF <- test %>% filter(Density < 2)
@@ -210,8 +201,62 @@
     ggtitle("Fitted function", "Bearded seal: observed densities & monotone fit") +
     ylim(0, 0.6)
   
+
+# Create RES grid predictions -----------------------------------------------------------------
+
+  # use the fitted GAM - note resample median matches this effectively exactly
+  
+  monGAMPreds <- scam::predict.scam(monGAM, newdata = resGrid)
+  
+  predictionOutput <- resGrid %>%
+    mutate(PredDensity = monGAMPreds,
+           PredDensity = ifelse(PredDensity < 0, 0, PredDensity))
+  
+  ggplot(predictionOutput) + geom_raster(aes(x = `Center Long`, y = `Center Lat`, fill = PredDensity)) +
+    scale_fill_viridis_c()
+  
+  # Add SEs - model these from the resamples as a function of RES - add monotonicity constraint here too or linear interp
+  # add zero constraint
+  
+  zeroRES <- data.frame(lower = 0, med = 0, upper = 0, RES = 0, Density = 0, SE = 0)
+  
+  interpSE <- test %>% 
+    select(-CV) %>%
+    bind_rows(zeroRES)
+    
+  plot(interpSE$RES, interpSE$SE)  
+  
+  predictionOutput$SE <- approx(interpSE$RES, interpSE$SE, xout = predictionOutput$RES)$y 
+  
+  temp <- predictionOutput %>% 
+    mutate(CV = SE/PredDensity)
+  
+  # monotonicity constraints
+  monSEData <- test %>% select(RES, SE) %>% distinct()
+  
+  monSEGAM <- scam::scam(SE ~ s(RES, bs = "mpi")-1, data = monSEData)
+  
+  plot(monSEData$RES, fitted(monSEGAM))
+  points(test$RES, test$SE, col = "red")
   
   
+  monSEGAMPreds <- scam::predict.scam(monSEGAM, newdata = resGrid) 
+  
+  predictionOutput$SE <- monSEGAMPreds
+  
+  predictionOutput <- predictionOutput %>% 
+    mutate(SE = ifelse(SE < 0, min(abs(SE)), SE),
+           CV = SE/PredDensity,
+           #CV = ifelse(CV > 100, 100, CV),
+           CV = ifelse(PredDensity == 0, NA, CV)) %>%
+    select(-SE)
+  
+  summary(predictionOutput)
+  
+  
+  predictionOutput %>% filter(CV > 100)
+  
+  write.csv(predictionOutput, file = "data/Bearded_seal_predictions.csv", row.names = F)
 
 # Scratch -------------------------------------------------------------------------------------
 
