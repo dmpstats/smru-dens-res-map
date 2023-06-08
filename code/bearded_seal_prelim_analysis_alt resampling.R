@@ -12,7 +12,7 @@
   
   source("code/tools.R")  
   
-  rawRes <- readxl::read_xlsx("data/Bearded_seal_Density_RES_Data.xlsx", sheet = "Bearded s(P1)")
+  rawRes <- readxl::read_xlsx("data/MM_Density_RES_Data.xlsx", sheet = "Bearded seal (P1)", na = "-")
   
   resGrid <- read_csv("data/Bearded_seal.csv") %>%
     rename(RES = `Overall Probability`)
@@ -141,7 +141,7 @@
   
   set.seed(4835)
   
-  sampleList <- lapply(dataList, function(q){sampleLN(q$Density[1], q$workingSE[1], 1000)})
+  sampleList <- lapply(dataList, function(q){sampleLN(q$Density[1], q$workingSE[1], 500)})
   
   sampleDF <- plyr::ldply(sampleList) %>%
     mutate(`Area/Segment` = str_extract(.id, "(?<=:).+"),
@@ -154,7 +154,7 @@
   
   beardSealSamples <- beardSealSamples %>% 
     select(-Density) %>%
-    pivot_longer(names_to = "sampleID", values_to = "Density", V1:V1000) 
+    pivot_longer(names_to = "sampleID", values_to = "Density", V1:V500) 
   
   
   beardSealList <- split(beardSealSamples, beardSealSamples$sampleID)
@@ -178,7 +178,7 @@
   fittedDF <- fittedList %>% 
     bind_rows() 
   
-  fittedMatrix <- matrix(fittedDF$Pred, ncol = 1000)
+  fittedMatrix <- matrix(fittedDF$Pred, ncol = 500)
   
   test <- t(apply(fittedMatrix, 1, function(q){quantile(q, probs = c(0.025, 0.5, 0.975))}))
   
@@ -217,40 +217,5 @@
   
   predictionOutput %>% filter(CV > 100)
   
-  write.csv(predictionOutput, file = "data/Bearded_seal_predictions.csv", row.names = F)
+  write.csv(predictionOutput, file = "data/predictions/Bearded_seal_predictions.csv", row.names = F)
 
-# Scratch -------------------------------------------------------------------------------------
-
-  
-  test <- seq(0.2, 0.6, length = 100)
-  
-  testD <- dlnorm(test, logMu(0.5, 0.5), logSigma(0.5, 0.5))
-  
-  qlnorm(c(0.025, 0.975), logMu(0.372, 0.2*0.372), logSigma(0.372, 0.2*0.372))
-  
-  plnorm(c(0.252, 0.549), logMu(0.372,  0.07425), logSigma(0.372,  0.07425))
-  
-  nRep<- 1000
-  testMean <- numeric(nRep)
-  testSD <- numeric(nRep)
-  testLogSD <- numeric(nRep)
-  
-  for(i in 1:nRep){
-    n <- 100
-    testSamp <- rlnorm(n, logMu(0.008, 0.011), logSigma(0.008, 0.011))
-    testMean[i] <- mean(testSamp)
-    testSD[i] <- sd(testSamp)
-    testLogSD <- sd(log(testSamp))
-    
-  }
-  
-  mean(testMean)
-  mean(testSD)
-
-  
-  beardSealData
-  
-  refpts <- c(0.252, 0.372, 0.549)
-
-  rriskDistributions::fit.perc(c(0.025, 0.5, 0.975), refpts)  
-  
