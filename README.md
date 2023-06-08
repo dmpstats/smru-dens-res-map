@@ -1,6 +1,6 @@
 # Density calibration for the Relative Environmental Suitability (RES) index
 
-This repository contains code relating to a SMRU Consulting project to derive predicted density surfaces from an index within AquaMaps. The index (RES) is from niche modelling, whereby simple envelopes/functions are derived from examination of literature and expert opinion. These are thought to represent the theoretically suitable areas on the globe for species, based on a few predictors. This is 0-1 bounded, with higher values for greater suitability. Details can be found here, and in the associated project report - components of which are paraphrased below. Refer to the full project report for details, including discussion and limitations.
+This repository contains code relating to a SMRU Consulting project to derive predicted density surfaces from an index within [AquaMaps](http://www.aquamaps.org/). The index (RES) is from niche modelling, whereby simple envelopes/functions are derived from examination of literature and expert opinion. These are thought to represent the theoretically suitable areas on the globe for species, based on a few predictors. This is 0-1 bounded, with higher values for greater suitability. Details can be found [here](https://web.archive.org/web/20130729235651/http://www.aquamaps.org/main/FB_Book_KReyes_AquaMaps_JG.pdf), and in the associated project report - components of which are paraphrased below. Refer to the full project report for details, including discussion and limitations.
 
 ## Modelling 
 
@@ -17,9 +17,8 @@ Surveys provided density information and uncertainty in a number of forms, e.g. 
 Bootstrapping was conducted at a survey level – each survey was represented as an estimate and SE, which, when defined, draws from a log-Normal distribution. One draw was taken from each of these survey distributions, then combined with the corresponding spatial set of RES values, and the monotonic GAM fitted. Typically, the relationship between density and RES is not strong, and had substantial uncertainty, as reflected in the slight trend lines with wide confidence envelopes. 
 
 
-![](docs/images/bowhead_bootplot.png) 
+![Example bootstrapped fits of density to RES for bowhead whales.](docs/images/bowhead_bootplot.png) 
 
-Example bootstrapped fits of density to RES for bowhead whales.
 
 The required model outputs are predicted densities and CVs. Density predictions for all required 0.5 x 0.5 degree grid cells follow directly from the fitted function of RES, with CVs derived from the bootstraps, i.e. for a given RES, the bootstrap standard error was used. RES/predicted density values of 0 are given an undefined CV (null).
 
