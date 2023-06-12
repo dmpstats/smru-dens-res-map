@@ -26,27 +26,8 @@
            `Uncertainty measure` = ifelse(`Uncertainty measure` == "-", NA, `Uncertainty measure`)) %>%
     rename(RES = `Species relative suitability index`, Density = `Density estimate (per km2)`,
            LowerCI = `95% CI uncertainty low (per km2)`,
-           UpperCI = `95% CI uncertainty high (per km2)`) #%>% # gam doesn't like these names
-    #filter(RES > 0)
+           UpperCI = `95% CI uncertainty high (per km2)`)
 
-  
-
-# Preliminary explorations --------------------------------------------------------------------
-
-  # plot basic data to regress
-  
- 
-  regPlot <- ggplot(NARWData, x = RES, y = Density) + 
-    geom_point(aes(RES, Density), alpha = 0.4, position = position_jitter()) +
-    geom_smooth(aes(RES, Density)) +
-    ggthemes::theme_fivethirtyeight() +
-    ggtitle("Density vs RES", "NARW Whales")
-
-  regPlot  
-
-  
-  
-  
   
 
 
@@ -114,26 +95,7 @@
   
   
   NARWList <- split(NARWSamples, NARWSamples$sampleID)
-  
-  gamFit <- function(inData, inRES){
-    
-    padRow <- inData[1,] %>%
-      mutate(RES = 0, Density = 0)
-    
-    inData <- inData %>% bind_rows(padRow)
-    
-    workingFit <- scam::scam(Density ~ s(RES, bs = "mpi", fx = F, k = 50)-1, data = inData)
-    
-    resGridPred <- scam::predict.scam(workingFit, newdata = inRES)
-    
-    outData <- inRES %>%
-      mutate(Pred = resGridPred)
-    
-    outData
-    
-  }
-  
-  
+
   fittedList <- lapply(NARWList, gamFit, inRES = data.frame(RES = seq(0, 1, by = 0.01))) 
   
   fittedDF <- fittedList %>% 
@@ -150,17 +112,15 @@
     rename(lower = `2.5%`, med = `50%`, upper = `97.5%`) %>%
     mutate(med = ifelse(med < 0, min(abs(med)), med),
             CV = SE/med) %>%
-           #CV = ifelse(CV > 2, 2, CV)) %>%
     arrange(RES)
   
   plottingDF <- resFits 
   
   ggplot(plottingDF) + 
     ggthemes::theme_fivethirtyeight() +
-    #geom_point(aes(RES, Density), size = 2, alpha = 0.2) +
     geom_line(aes(RES, med), size = 2, alpha = 0.7, col = "purple") +
     geom_ribbon(aes(x = RES, ymin = lower, ymax = upper), fill = "purple", alpha = 0.2) + 
-    ggtitle("Fitted function", "Bearded seal: observed densities & monotone fit") 
+    ggtitle("Fitted function", "NARW: observed densities & monotone fit") 
   
 
 # Create RES grid predictions -----------------------------------------------------------------

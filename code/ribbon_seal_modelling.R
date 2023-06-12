@@ -26,26 +26,7 @@
            `Uncertainty measure` = ifelse(`Uncertainty measure` == "-", NA, `Uncertainty measure`)) %>%
     rename(RES = `Species relative suitability index`, Density = `Density estimate (per km2)`,
            LowerCI = `95% CI uncertainty low (per km2)`,
-           UpperCI = `95% CI uncertainty high (per km2)`) #%>% # gam doesn't like these names
-    #filter(RES > 0)
-
-  
-
-# Preliminary explorations --------------------------------------------------------------------
-
-  # plot basic data to regress
-  
- 
-  regPlot <- ggplot(ribbonsealData, x = RES, y = Density) + 
-    geom_point(aes(RES, Density), alpha = 0.4, position = position_jitter()) +
-    geom_smooth(aes(RES, Density)) +
-    ggthemes::theme_fivethirtyeight() +
-    ggtitle("Density vs RES", "Ribbon seals")
-
-  regPlot  
-
-  
-  
+           UpperCI = `95% CI uncertainty high (per km2)`) 
 
 
 # Adding survey uncertainty -------------------------------------------------------------------
@@ -113,21 +94,7 @@
   
   
   ribbonsealList <- split(ribbonsealSamples, ribbonsealSamples$sampleID)
-  
-  gamFit <- function(inData, inRES){
-    
-    workingFit <- scam::scam(Density ~ s(RES, bs = "mpi", fx = F, k = 50)-1, data = inData)
-    
-    resGridPred <- scam::predict.scam(workingFit, newdata = inRES)
-    
-    outData <- inRES %>%
-      mutate(Pred = resGridPred)
-    
-    outData
-    
-  }
-  
-  
+
   fittedList <- lapply(ribbonsealList, gamFit, inRES = data.frame(RES = seq(0, 1, by = 0.01))) 
   
   fittedDF <- fittedList %>% 
@@ -144,15 +111,13 @@
     rename(lower = `2.5%`, med = `50%`, upper = `97.5%`) %>%
     mutate(med = ifelse(med < 0, min(abs(med)), med),
             CV = SE/med) %>%
-           #CV = ifelse(CV > 2, 2, CV)) %>%
     arrange(RES)
   
   plottingDF <- resFits 
   
   bootPlot <- ggplot(plottingDF) + 
     ggthemes::theme_fivethirtyeight() +
-    #geom_point(data = ribbonsealData, aes(RES, Density), size = 2, alpha = 0.2) +
-    geom_line(aes(RES, med), size = 2, alpha = 0.7, col = "purple") +
+     geom_line(aes(RES, med), size = 2, alpha = 0.7, col = "purple") +
     geom_ribbon(aes(x = RES, ymin = lower, ymax = upper), fill = "purple", alpha = 0.2) + 
     ggtitle("Density as function of RES", "Ribbon seal: bootstrapped monotone spline fits") 
   
