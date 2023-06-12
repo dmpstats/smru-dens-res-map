@@ -26,22 +26,6 @@
            LowerCI = `95% CI uncertainty low (per km2)`,
            UpperCI = `95% CI uncertainty high (per km2)`) # gam doesn't like these names
 
-  
-
-# Preliminary explorations --------------------------------------------------------------------
-
-  # plot basic data to regress
-  
- 
-  regPlot <- ggplot(beardSealData, x = RES, y = Density) + 
-    geom_point(aes(RES, Density), alpha = 0.4, position = position_jitter()) +
-    geom_smooth(aes(RES, Density)) +
-    ggthemes::theme_fivethirtyeight() +
-    ggtitle("Density vs RES", "Bearded Seals")
-
-  regPlot  
-
-
 
 # Adding survey uncertainty -------------------------------------------------------------------
 #' Here devise resampling for the different sorts of uncertainty that are present in the survey data
@@ -85,13 +69,20 @@
              upperError = UpperCI - workingUpperCI,
              blockID = paste(beardSealData$`Survey ID`, beardSealData$`Area/Segment`, sep = ":")
       ) 
-  # sample for each of the area/segments collectively (as not independent)  
   
+  
+
+# Preparation of bootstrap blocks -----------------------------------------
+#' Sampling is conducted within each survey
+
+  # sample for each of the area/segments collectively (as not independent)  
   dataList <- split(beardSealData, beardSealData$blockID)
+  nBoot <- 500
+  nameBoot <- paste0("V", nBoot) #name of the final automatically created columns
   
   set.seed(4835)
   
-  sampleList <- lapply(dataList, function(q){sampleLN(q$Density[1], q$workingSE[1], 500)})
+  sampleList <- lapply(dataList, function(q){sampleLN(q$Density[1], q$workingSE[1], nBoot)})
   
   sampleDF <- plyr::ldply(sampleList) %>%
     mutate(`Area/Segment` = str_extract(.id, "(?<=:).+"),
@@ -104,31 +95,20 @@
   
   beardSealSamples <- beardSealSamples %>% 
     select(-Density) %>%
-    pivot_longer(names_to = "sampleID", values_to = "Density", V1:V500) 
+    pivot_longer(names_to = "sampleID", values_to = "Density", V1:all_of(nameBoot))
   
   
   beardSealList <- split(beardSealSamples, beardSealSamples$sampleID)
   
-  gamFit <- function(inData, inRES){
-    
-    workingFit <- scam::scam(Density ~ s(RES, bs = "mpi")-1, data = inData)
-    
-    resGridPred <- scam::predict.scam(workingFit, newdata = inRES)
-    
-    outData <- inRES %>%
-      mutate(Pred = resGridPred)
-    
-    outData
-    
-  }
-  
-  
+
+# Fitting of models to bootstrapped blocks --------------------------------
+
   fittedList <- lapply(beardSealList, gamFit, inRES = data.frame(RES = seq(0, 1, by = 0.01))) 
   
   fittedDF <- fittedList %>% 
     bind_rows() 
   
-  fittedMatrix <- matrix(fittedDF$Pred, ncol = 500)
+  fittedMatrix <- matrix(fittedDF$Pred, ncol = nBoot)
   
   test <- t(apply(fittedMatrix, 1, function(q){quantile(q, probs = c(0.025, 0.5, 0.975))}))
   
@@ -139,14 +119,14 @@
     rename(lower = `2.5%`, med = `50%`, upper = `97.5%`) %>%
     mutate(med = ifelse(med < 0, min(abs(med)), med),
             CV = SE/med) %>%
-           #CV = ifelse(CV > 2, 2, CV)) %>%
     arrange(RES)
   
   plottingDF <- resFits 
   
+  # plot of bootstrap predictions - mean and envelope
+  
   ggplot(plottingDF) + 
     ggthemes::theme_fivethirtyeight() +
-    #geom_point(aes(RES, Density), size = 2, alpha = 0.2) +
     geom_line(aes(RES, med), size = 2, alpha = 0.7, col = "purple") +
     geom_ribbon(aes(x = RES, ymin = lower, ymax = upper), fill = "purple", alpha = 0.2) + 
     ggtitle("Fitted function", "Bearded seal: observed densities & monotone fit") +
