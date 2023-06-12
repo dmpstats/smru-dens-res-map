@@ -2,6 +2,17 @@
 
 This repository contains code relating to a SMRU Consulting project to derive predicted density surfaces from an index within [AquaMaps](http://www.aquamaps.org/). The index (RES) is from niche modelling, whereby simple envelopes/functions are derived from examination of literature and expert opinion. These are thought to represent the theoretically suitable areas on the globe for species, based on a few predictors. This is 0-1 bounded, with higher values for greater suitability. Details can be found [here](https://web.archive.org/web/20130729235651/http://www.aquamaps.org/main/FB_Book_KReyes_AquaMaps_JG.pdf), and in the associated project report - components of which are paraphrased below. Refer to the full project report for details, including discussion and limitations.
 
+## Contents
+
+The `code` folder contains r-scripts for the production of each species' predictions. These are by species, with the exception of 3 species where survey density estimates weren't available, necessitating a different approach based on overall abundance estimates (refer below and report). These three species (harp, hooded and northern elephant seals) are treated in the `SAR_distribution mdoelling.r` file. In most cases the files consist of:
+
+* data preparation, including conversion of uncertainty measures to SEs
+* production of bootstrap samples - typically 1000 although where fitting is slow these may be 500/600
+* fitting of monotone gam functions to each bootstrapped dataset
+* prediction to RES values and generation of CVs from bootstrap envelopes
+
+The `tools.r` script contains some general purpose code for the conversion of uncertainty to SEs and model fitting.
+
 ## Modelling 
 
 The AquaMaps RES index is a globally defined index at 0.5 x 0.5 degree grid cell resolution, ranging from values of 0 to 1. It is based on simple relationships with a few generally important predictors of species abundance and is further subject to expert scrutiny which bounds the RES surfaces based on known species’ extents, i.e. RES is set to zero where species are not thought to occur. It is also important to note that AquaMaps RES surfaces provide an annual average and do not vary seasonally/temporally.
