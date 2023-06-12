@@ -41,3 +41,22 @@ logSigma <- function(mu, sigma){
     outSamp
     
   }
+
+
+
+# GAM fit function for bootstrapping --------------------------------------
+#' Fits a monotone GAM, no intercept (although zero intercept not guaranteed)
+
+gamFit <- function(inData, inRES){
+  
+  workingFit <- scam::scam(Density ~ s(RES, bs = "mpi")-1, data = inData)
+  
+  resGridPred <- scam::predict.scam(workingFit, newdata = inRES)
+  
+  outData <- inRES %>%
+    mutate(Pred = resGridPred)
+  
+  outData
+  
+}
+
