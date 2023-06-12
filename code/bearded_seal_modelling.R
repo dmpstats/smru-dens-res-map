@@ -1,8 +1,5 @@
 # ---------------------------------------------------------------------------------------------
-#' Preliminary analysis for the Bearded Seal. 
-#'
-#'
-
+#' Bearded seals: data preparation, boostrapping, model fitting and predictions to RES
 
 
 # Preamble ------------------------------------------------------------------------------------
