@@ -60,3 +60,21 @@ gamFit <- function(inData, inRES){
   
 }
 
+
+# GAM fit function for bootstrapping --------------------------------------
+#' Fits a monotone GAM assuming log link tweedie distribution - p needs to be specified
+#' Fits can be sensitive to this - p tending towards 1 is a Poisson-like dist, towards 2 is gamma
+#' No attempt to constrain the intercept in this construction
+
+gamFitTweedie <- function(inData, inP, inRES){
+  
+  workingFit <- scam::scam(Density ~ s(RES, bs = "mpi"), data = inData, family = Tweedie(p = inP, link = "log"))
+  
+  resGridPred <- scam::predict.scam(workingFit, newdata = inRES, type = "response")
+  
+  outData <- inRES %>%
+    mutate(Pred = resGridPred)
+  
+  outData
+  
+}
