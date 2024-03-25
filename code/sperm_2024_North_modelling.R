@@ -6,14 +6,19 @@
 
 # Preamble ------------------------------------------------------------------------------------
 
-  library(tidyverse)
-  library(mgcv)
-  
-  source("code/tools.R")  
-  
+library(tidyverse)
+library(mgcv)
+library(furrr)
+
+source("code/tools.R")  
+speciesName <- "Sperm"  
+locationName <- "north"
+nBoot <- 100
+
   # note missing values in spreadsheet indicated by "-" in some cases (cols J and K)
 
-  rawRes <- read_csv("data/Fin and sperm whales/Fin and sperm whales/Sperm_whale.csv")
+  rawRes <- read_csv("data/Fin and sperm whales/Fin and sperm whales/Sperm_whale.csv") %>% 
+    filter(str_detect(Location, "North"))
   
   
   resGrid <- read_csv("data/Fin and sperm whales/Fin and sperm whales/Sperm whale (Physeter macrocephalus) - Native range.csv")
@@ -95,12 +100,17 @@
   spermList <- split(spermSamples, spermSamples$sampleID)
   
   
-  fittedList <- lapply(spermList, gamFit, inRES = data.frame(RES = seq(0, 1, by = 0.01))) 
+  # fittedList <- lapply(spermList, gamFit, inRES = data.frame(RES = seq(0, 1, by = 0.01))) 
   
-  fittedDF <- fittedList %>% 
-    bind_rows() 
+  plan(multicore, workers = 3)
   
-  fittedMatrix <- matrix(fittedDF$Pred, ncol = 100)
+  fittedList <- future_map(spermList, \(x) gamFit(x), inRES = data.frame(RES = seq(0, 1, by = 0.01))) 
+  
+  
+  fittedDF <- fittedList %>%
+    bind_rows()
+  
+  fittedMatrix <- matrix(fittedDF$Pred, ncol = nBoot)
   
   test <- t(apply(fittedMatrix, 1, function(q){quantile(q, probs = c(0.025, 0.5, 0.975))}))
   
@@ -110,27 +120,27 @@
     mutate(RES = seq(0, 1, by = 0.01), SE = testSE) %>%
     rename(lower = `2.5%`, med = `50%`, upper = `97.5%`) %>%
     mutate(med = ifelse(med < 0, min(abs(med)), med),
-            CV = SE/med) %>%
-           #CV = ifelse(CV > 2, 2, CV)) %>%
+           CV = SE/med) %>%
+    #CV = ifelse(CV > 2, 2, CV)) %>%
     arrange(RES)
   
-  plottingDF <- resFits 
+  plottingDF <- resFits
   
-  bootPlot <- ggplot(plottingDF) + 
+  bootPlot <- ggplot(plottingDF) +
     ggthemes::theme_fivethirtyeight() +
     #geom_point(data = ribbonsealData, aes(RES, Density), size = 2, alpha = 0.2) +
     geom_line(aes(RES, med), size = 2, alpha = 0.7, col = "purple") +
-    geom_ribbon(aes(x = RES, ymin = lower, ymax = upper), fill = "purple", alpha = 0.2) + 
-    ggtitle("Density as function of RES", "sperm whale: bootstrapped monotone spline fits") 
+    geom_ribbon(aes(x = RES, ymin = lower, ymax = upper), fill = "purple", alpha = 0.2) +
+    ggtitle("Density as function of RES", paste0(speciesName, " whale: bootstrapped monotone spline fits"))
   
   bootPlot
   
-  ggsave("docs/images/sperm_whole_bootplot_100.png", units = "cm", width = 30, height = 20)
+  ggsave(paste0("docs/images/", speciesName, "_", locationName, "_bootplot_", nBoot, ".png"), units = "cm", width = 30, height = 20)
   
   
-
-# Create RES grid predictions -----------------------------------------------------------------
-
+  
+  # Create RES grid predictions -----------------------------------------------------------------
+  
   resFits <- resFits %>% select(med, RES, CV) %>%
     rename(PredDensity = med) %>%
     mutate(RES = round(RES, 2))
@@ -140,10 +150,10 @@
   predictionOutput <- predictionOutput %>%
     mutate(PredDensity = ifelse(RES == 0, 0, PredDensity),
            CV = ifelse(RES == 0, NA, CV))
-   
+  
   summary(predictionOutput)
   
   
   
-  write.csv(predictionOutput, file = "data/sperm_whole_predictions.csv", row.names = F)
-
+  write.csv(predictionOutput, file = paste0("data/predictions/", speciesName, "_", locationName, "_predictions.csv"), row.names = F)
+  
