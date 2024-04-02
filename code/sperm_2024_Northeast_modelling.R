@@ -148,6 +148,7 @@ nBoot <- 500
   bootPlot
   
   ggsave(paste0("docs/images/", speciesName, "_", locationName, "_bootplot_", nBoot, ".png"), units = "cm", width = 30, height = 20)
+  saveRDS(plottingDF, paste0("data/plotting components/", speciesName, "_", locationName, "_plotElements",".rds"))
   
   
   
