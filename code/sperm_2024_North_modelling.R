@@ -17,11 +17,11 @@ nBoot <- 100
 
   # note missing values in spreadsheet indicated by "-" in some cases (cols J and K)
 
-  rawRes <- read_csv("data/Fin and sperm whales/Fin and sperm whales/Sperm_whale.csv") %>% 
+  rawRes <- read_csv("NE Atlantic Data/Sperm_whale.csv") %>% 
     filter(str_detect(Location, "North"))
   
   
-  resGrid <- read_csv("data/Fin and sperm whales/Fin and sperm whales/Sperm whale (Physeter macrocephalus) - Native range.csv")
+  resGrid <- read_csv("NE Atlantic Data/RES spreadsheets/Sperm whale (Physeter macrocephalus) - Native range.csv")
   
   # Coding of missing values are "-", several numeric fields interpreted as char
   
@@ -84,7 +84,7 @@ nBoot <- 100
   
   set.seed(4835)
   
-  sampleList <- lapply(dataList, function(q){sampleLN(q$Density[1], q$workingSE[1], 100)})
+  sampleList <- lapply(dataList, function(q){sampleLN(q$Density[1], q$workingSE[1], nBoot)})
   
   sampleDF <- plyr::ldply(sampleList) %>%
     rename(Survey = .id)
@@ -94,7 +94,7 @@ nBoot <- 100
   
   spermSamples <- spermSamples %>% 
     select(-Density) %>%
-    pivot_longer(names_to = "sampleID", values_to = "Density", V1:V100) 
+    pivot_longer(names_to = "sampleID", values_to = "Density", V1:last_col()) 
   
   
   spermList <- split(spermSamples, spermSamples$sampleID)
@@ -102,9 +102,9 @@ nBoot <- 100
   
   # fittedList <- lapply(spermList, gamFit, inRES = data.frame(RES = seq(0, 1, by = 0.01))) 
   
-  plan(multicore, workers = 3)
+  plan(multicore, workers = 10)
   
-  fittedList <- future_map(spermList, \(x) gamFit(x), inRES = data.frame(RES = seq(0, 1, by = 0.01))) 
+  fittedList <- future_map(spermList, \(x) gamFitTweedie(x, inP = 1.2, inRES = data.frame(RES = seq(0, 1, by = 0.01))), .progress = T)
   
   
   fittedDF <- fittedList %>%
