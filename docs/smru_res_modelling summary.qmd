@@ -1,0 +1,28 @@
+---
+title: "smru_res_modelling summary"
+format: html
+editor: visual
+---
+
+## Overview
+
+
+```{r}
+#| include: false
+
+library(tidyverse)
+
+
+
+```
+
+
+
+
+```{r}
+
+
+NEDataPaths <- list.files("../NE Atlantic Data/", pattern = ".+.csv", full.names = T, recursive = F)
+
+
+```
