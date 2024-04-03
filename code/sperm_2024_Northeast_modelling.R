@@ -14,7 +14,7 @@ library(progressr)
 source("code/tools.R")  
 speciesName <- "Sperm"  
 locationName <- "northeast"
-nBoot <- 500
+nBoot <- 490
 
   # note missing values in spreadsheet indicated by "-" in some cases (cols J and K)
 
