@@ -9,11 +9,12 @@
 library(tidyverse)
 library(mgcv)
 library(furrr)
+library(progressr)
 
 source("code/tools.R")  
 speciesName <- "Sperm"  
 locationName <- "north"
-nBoot <- 100
+nBoot <- 490
 
   # note missing values in spreadsheet indicated by "-" in some cases (cols J and K)
 
@@ -25,7 +26,7 @@ nBoot <- 100
   
   # Coding of missing values are "-", several numeric fields interpreted as char
   
-  spermData <- rawRes %>% 
+  speciesData <- rawRes %>% 
     rename(UpperCI = CI_95_high,
            LowerCI = CI_95_low) 
     
@@ -36,20 +37,20 @@ nBoot <- 100
 #' Note, there are single measures and upper/lower 95% CIS
 #' 
 
-  table(spermData$Uncertainty_measure, useNA = "always")
+  table(speciesData$Uncertainty_measure, useNA = "always")
   
   # check that where there is not a single measure, we do have a CI
-  test <- spermData %>% filter(is.na(Uncertainty_measure)) 
+  test <- speciesData %>% filter(is.na(Uncertainty_measure)) 
   any(is.na(test$UpperCI))
   all(is.na(test$UpperCI))
   
   test %>% filter(!is.na(LowerCI))
   
-  spermData <- spermData %>% 
+  speciesData <- speciesData %>% 
     mutate(Uncertainty_measure = ifelse(is.na(Uncertainty_measure) & !is.na(LowerCI), "Confint", Uncertainty_measure)) %>%
     filter(!(is.na(Uncertainty_measure) & is.na(UpperCI))) 
   
-  table(spermData$Uncertainty_measure, useNA = "always")
+  table(speciesData$Uncertainty_measure, useNA = "always")
   
     
   # note some have CIs and alterative measure. Will use CIs when available
@@ -57,7 +58,7 @@ nBoot <- 100
   # convert to CVs, extract as CIs so single sampling method required
   # everything in the data with a CV provided a CI as well
   
-  spermData <- spermData %>%
+  speciesData <- speciesData %>%
     mutate(Uncertainty = ifelse(str_detect(Uncertainty_measure, "% CV abundance"), Uncertainty/100, Uncertainty), 
            Uncertainty_measure = ifelse(str_detect(Uncertainty_measure, "% CV for abundance"), "CV", Uncertainty_measure), 
            Uncertainty = ifelse(str_detect(Uncertainty_measure, "CV"), Uncertainty*Density, Uncertainty),
@@ -70,7 +71,7 @@ nBoot <- 100
   
   # obtain CIs from lognormal using mean, SE
   
-  spermData <- spermData %>%
+  speciesData <- speciesData %>%
       mutate(workingLowerCI = qlnorm(0.025, logMu(Density, workingSE), logSigma(Density, workingSE)),
              workingUpperCI = qlnorm(0.975, logMu(Density, workingSE), logSigma(Density, workingSE)),
              lowerError = LowerCI - workingLowerCI, 
@@ -80,7 +81,7 @@ nBoot <- 100
 
   # sample for each of the area/segments collectively (as not independent)  
   
-  dataList <- split(spermData, spermData$blockID)
+  dataList <- split(speciesData, speciesData$blockID)
   
   set.seed(4835)
   
@@ -89,22 +90,34 @@ nBoot <- 100
   sampleDF <- plyr::ldply(sampleList) %>%
     rename(Survey = .id)
   
-  spermSamples <- spermData %>% left_join(sampleDF)
+  speciesSamples <- speciesData %>% left_join(sampleDF)
   
   
-  spermSamples <- spermSamples %>% 
+  speciesSamples <- speciesSamples %>% 
     select(-Density) %>%
     pivot_longer(names_to = "sampleID", values_to = "Density", V1:last_col()) 
   
   
-  spermList <- split(spermSamples, spermSamples$sampleID)
+  speciesList <- split(speciesSamples, speciesSamples$sampleID)
   
   
-  # fittedList <- lapply(spermList, gamFit, inRES = data.frame(RES = seq(0, 1, by = 0.01))) 
+  # fittedList <- lapply(speciesList, gamFit, inRES = data.frame(RES = seq(0, 1, by = 0.01))) 
   
-  plan(multicore, workers = 10)
+  plan(multicore, workers = 30)
   
-  fittedList <- future_map(spermList, \(x) gamFitTweedie(x, inP = 1.2, inRES = data.frame(RES = seq(0, 1, by = 0.01))), .progress = T)
+  testFN <- function(inList){
+    
+    p <- progressor(steps = length(inList))
+    
+    future_map(inList, \(x) {p(); gamFitTweedie(x, inP = 1.2, inRES = data.frame(RES = seq(0, 1, by = 0.01)))})
+    
+  }
+  
+  
+  with_progress({
+    fittedList <- testFN(speciesList)
+  })
+  
   
   
   fittedDF <- fittedList %>%
