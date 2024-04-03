@@ -84,7 +84,7 @@ nBoot <- 500
   
   dataList <- split(speciesData, speciesData$blockID)
   
-  set.seed(4835)
+  set.seed(345)
   
   sampleList <- lapply(dataList, function(q){sampleLN(q$Density[1], q$workingSE[1], nBoot)})
   
