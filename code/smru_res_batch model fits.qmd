@@ -11,13 +11,12 @@ editor: visual
 
 library(tidyverse)
 library(here)
+source("tools.R")
 
 
 ```
 
-
 ## Read and prep data in bulk
-
 
 ```{r}
 
@@ -32,7 +31,6 @@ rawSpecies <- bind_rows(dataList) %>%
 
 ```
 
-
 ```{r}
 # Adding survey uncertainty -------------------------------------------------------------------
 #' Here devise resampling for the different sorts of uncertainty that are present in the survey data
@@ -46,15 +44,14 @@ test <- rawSpecies %>% filter(is.na(Uncertainty_measure))
 
 test %>% filter(!is.na(LowerCI))
 
-speciesData <- rawSpecies %>% 
+test <- rawSpecies %>% 
   mutate(Uncertainty_measure = ifelse(is.na(Uncertainty_measure) & !is.na(LowerCI), "Confint", Uncertainty_measure)) %>%
   filter(!(is.na(Uncertainty_measure) & is.na(UpperCI))) 
 
-table(speciesData$Uncertainty_measure, useNA = "always")
+table(test$Uncertainty_measure, useNA = "always")
 ```
 
-Basic approach here is to convert _everything_ to a standard error. This is done either directly for CVs (noting some are %-age), SEs for abundance, SEs as given, or inferred from confidence intervals assuming that these are log-Normally distributed. 
-
+Basic approach here is to convert *everything* to a standard error. This is done either directly for CVs (noting some are %-age), SEs for abundance, SEs as given, or inferred from confidence intervals assuming that these are log-Normally distributed.
 
 ```{r}
 # note some have CIs and alterative measure. Will use CIs when available
@@ -62,7 +59,10 @@ Basic approach here is to convert _everything_ to a standard error. This is done
 # convert to CVs, extract as CIs so single sampling method required
 # everything in the data with a CV provided a CI as well
 
-speciesData <- speciesData %>%
+speciesData <- rawSpecies %>%
+  mutate(Uncertainty_measure = ifelse(is.na(Uncertainty_measure) & !is.na(LowerCI), "Confint", Uncertainty_measure)) %>% # input Confint where we have them, drop where we can't ID uncertainty
+  filter(!(is.na(Uncertainty_measure) & is.na(UpperCI))) %>% 
+  filter(!(is.na(Uncertainty) & is.na(UpperCI))) %>% 
   mutate(Uncertainty = ifelse(str_detect(Uncertainty_measure, "CV") & Uncertainty > 4, Uncertainty/100, Uncertainty), # looks like various % errors 
          Uncertainty = ifelse(str_detect(Uncertainty_measure, "% CV abundance"), Uncertainty/100, Uncertainty), 
          Uncertainty_measure = ifelse(str_detect(Uncertainty_measure, "% CV for abundance"), "CV", Uncertainty_measure), 
@@ -75,11 +75,85 @@ speciesData <- speciesData %>%
          Uncertainty_measure = ifelse(str_detect(Uncertainty_measure, "Variance of abundance"), "Confint", Uncertainty_measure),
          Uncertainty = ifelse(str_detect(Uncertainty_measure, "SE abundance"), NA, Uncertainty), # all these have CIs
          Uncertainty_measure = ifelse(str_detect(Uncertainty_measure, "SE abundance"), "Confint", Uncertainty_measure),
-         workingSE = Uncertainty,
-         LowerCI = ifelse(LowerCI == 0, 0.0001, LowerCI), #arbitrary 0
-         workingSE = ifelse(Uncertainty_measure == "Confint", SEfromCI(Density, LowerCI, UpperCI), workingSE)
-  ) 
+         workingSE = Uncertainty
+  )
 
+```
+
+
+Correct for situations where the density has been converted to a different scale, but SE has not e.g. 100km2 to 1km2.
+
+
+```{r}
+
+speciesData %>% 
+  mutate(CV = workingSE/Density) %>% 
+  filter(Uncertainty_measure == "SE" & CV > 2) %>% 
+  group_by(Internal_reference) %>% 
+  summarise(N = n())
+
+```
+
+
+```{r}
+
+speciesData %>% 
+  mutate(CV = workingSE/Density) %>% 
+  filter(str_detect(Internal_reference, "015_Harwood|055_Stone|091_Sagnol")) %>% 
+  group_by(Internal_reference) %>% 
+  summarise(N = n())
+
+```
+
+So we need only correct for these data sources in totality - there are only SE.
+
+
+
+```{r}
+
+speciesData <- speciesData %>% 
+  mutate(workingSE = if_else(str_detect(Internal_reference, "015_Harwood|055_Stone|091_Sagnol"), workingSE/100, workingSE))
+
+```
+
+
+Now require SE where we have only CIs. Many don't seem consistent with the lognormal (appear very approximate - suspect have been hacked, particularly with zero lower bounds)
+
+
+
+```{r}
+
+temp <- speciesData %>% 
+  select(Uncertainty_measure, Uncertainty, Density, LowerCI, UpperCI) %>% 
+  filter(Uncertainty_measure == "Confint") %>% 
+  mutate(ratio = (UpperCI - LowerCI)/Density,
+         SE = SEfromCI(Density, LowerCI, UpperCI),
+         CV = SE/Density) 
+
+
+```
+
+The rationale here therefore is to use the lognormal to generate, except for where it fails (Inf returned). This is where we have 0 lower CI, which themselves appear to be hacked. In these cases, assume SE is the CI range/2*1.96 - which appears reasonable for these few cases. Suspect these have been generated from a normal approximation, with an arbitrary bounding at zero.
+
+
+
+
+
+```{r}
+
+speciesData <- speciesData %>% 
+  mutate(workingSE = if_else(Uncertainty_measure == "Confint", SEfromCI(Density, LowerCI, UpperCI), workingSE),
+         workingSE = if_else(is.infinite(workingSE), (UpperCI - LowerCI)/(2*1.96), workingSE), 
+         CV = workingSE/Density) 
+
+
+```
+
+
+Will be sampling from lognormal, check these aren't wildly contradictory where we have CIs to compare to.
+
+
+```{r}
 # obtain CIs from lognormal using mean, SE
 
 speciesData <- speciesData %>%
@@ -90,16 +164,41 @@ speciesData <- speciesData %>%
          blockID = Survey
   ) 
 
+```
 
-write_csv(speciesData, here("data/smru_RES_cleaned density data.csv"))
+
+
+
+```{r}
+
+summary(speciesData$lowerError)
+summary(speciesData$upperError)
 
 ```
 
 
-## Modelling batch
+```{r}
+
+speciesData %>% 
+  mutate(errorRatio = abs(upperError)/UpperCI) %>% 
+  filter(errorRatio > 1)
+
+```
+
 
 
 ```{r}
+# file is too large for github
+
+write_csv(speciesData, here("C:/Users/crd2/Dropbox/dmp/clients/smru/resMap_NE2024/"))
+
+```
+
+## Modelling batch
+
+```{r}
+
+speciesData <- read_csv("C:/Users/crd2/Dropbox/dmp/clients/smru/resMap_NE2024/data/smru_RES_cleaned density data.csv")
 
 speciesData %>% 
   group_by(Commonname, Location) %>% 
@@ -113,8 +212,6 @@ speciesData %>%
 
 
 ```
-
-
 
 ### blue whale
 
@@ -216,32 +313,18 @@ write.csv(predictionOutput, file = paste0("data/predictions/", speciesName, "_",
 
 ```
 
-
 ### Bowhead whle
 
+### Brydes whale
 
-### Brydes whale 
+### Fin whale
 
+### Humpback whale
 
-### Fin whale 
+### Minke whale
 
+### North atlantic right whale
 
-### Humpback whale 
-
-
-### Minke whale 
-
-
-### North atlantic right whale 
-
-
-### Sei whale 
-
+### Sei whale
 
 ### Sperm whale
-
-
-
-
-
-
