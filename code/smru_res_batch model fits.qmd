@@ -181,16 +181,30 @@ summary(speciesData$upperError)
 
 speciesData %>% 
   mutate(errorRatio = abs(upperError)/UpperCI) %>% 
-  filter(errorRatio > 1)
+  filter(errorRatio > 2)
 
 ```
 
+```{r}
+
+speciesData %>% 
+  filter(str_detect(Internal_reference, "Fulling"))
+
+```
+
+```{r}
+
+speciesData <- speciesData %>% 
+  mutate(Density = if_else(str_detect(Internal_reference, "Fulling"), Density/1000, Density), 
+         workingSE = if_else(str_detect(Internal_reference, "Fulling"), workingSE/1000, workingSE))
+
+```
 
 
 ```{r}
 # file is too large for github
 
-write_csv(speciesData, here("C:/Users/crd2/Dropbox/dmp/clients/smru/resMap_NE2024/"))
+write_csv(speciesData, "C:/Users/crd2/Dropbox/dmp/clients/smru/resMap_NE2024/data/smru_RES_cleaned density data_090424.csv")
 
 ```
 
