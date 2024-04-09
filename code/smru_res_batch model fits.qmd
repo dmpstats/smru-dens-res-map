@@ -513,7 +513,7 @@ fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
 
 ```{r}
 
-speciesName <- "Minke"  
+speciesName <- "minke"  
 locationName <- "Whole"
 inBootN <- 10
 
@@ -576,7 +576,7 @@ fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
 
 ```{r}
 
-speciesName <- "Right"  
+speciesName <- "right"  
 locationName <- "North"
 inBootN <- 10
 
