@@ -293,6 +293,7 @@ fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
 
 
 ```{r}
+#| eval: false
 
 speciesName <- "Bow"  
 locationName <- "Whole"
@@ -618,6 +619,7 @@ fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
 
 
 ```{r}
+#| eval: false
 
 speciesName <- "Sperm"  
 locationName <- "Whole"
