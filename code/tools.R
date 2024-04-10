@@ -85,11 +85,11 @@ gamFitTweedie <- function(inData, inP, inRES){
 
 
 
-fitFun <- function(speciesName, locationName, nBoot = 200, inData = workingData, inRES = workingRES, modelForm = "tweedie"){
+fitFun <- function(speciesName, locationName, nBoot = 200, inData = workingData, inRES = workingRES, modelForm = "tweedie", inSeed = 345){
   
   dataList <- split(inData, inData$blockID)
   
-  set.seed(345)
+  set.seed(inSeed)
   
   sampleList <- lapply(dataList, function(q){sampleLN(q$Density[1], q$workingSE[1], nBoot)})
   
