@@ -219,18 +219,9 @@ speciesData <- speciesData %>%
 ```
 
 
-```{r}
-# file is too large for github
-
-# write_csv(speciesData, "C:/Users/crd2/Dropbox/dmp/clients/smru/resMap_NE2024/data/smru_RES_cleaned density data_090424.csv")
-
-```
-
 ## Modelling batch
 
 ```{r}
-
-# speciesData <- read_csv("C:/Users/crd2/Dropbox/dmp/clients/smru/resMap_NE2024/data/smru_RES_cleaned density data_090424.csv")
 
 speciesData %>% 
   group_by(Commonname, Location) %>% 
@@ -250,10 +241,11 @@ speciesData %>%
   
 
 ```{r}
+#| eval: false
 
 speciesName <- "Blue"  
 locationName <- "Whole"
-inBootN <- 10
+inBootN <- 250
 
 
 workingData <- speciesData %>% 
@@ -263,10 +255,6 @@ workingRES <- resData %>%
   filter(str_detect(Commonname, speciesName)) 
 
 fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
-
-```
-
-```{r}
 
 locationName <- "North"
 
@@ -278,12 +266,7 @@ workingRES <- resData %>%
 
 fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
 
-```
-
-```{r}
-
 locationName <- "Atlantic"
-
 
 workingData <- speciesData %>% 
   filter(str_detect(Commonname, speciesName), str_detect(Location, locationName)) 
@@ -293,9 +276,6 @@ workingRES <- resData %>%
 
 fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
 
-```
-
-```{r}
 locationName <- "Northeast"
 
 
@@ -316,7 +296,7 @@ fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
 
 speciesName <- "Bow"  
 locationName <- "Whole"
-inBootN <- 10
+inBootN <- 250
 
 
 workingData <- speciesData %>% 
@@ -326,31 +306,6 @@ workingRES <- resData %>%
   filter(str_detect(Commonname, speciesName)) 
 
 fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
-
-```
-
-
-### Brydes whale
-
-
-```{r}
-
-speciesName <- "Bryde"  
-locationName <- "Whole"
-inBootN <- 10
-
-
-workingData <- speciesData %>% 
-  filter(str_detect(Commonname, speciesName)) 
-
-workingRES <- resData %>%
-  filter(str_detect(Commonname, speciesName)) 
-
-fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
-
-```
-
-```{r}
 
 locationName <- "North"
 
@@ -362,9 +317,50 @@ workingRES <- resData %>%
 
 fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
 
+locationName <- "Atlantic"
+
+
+workingData <- speciesData %>% 
+  filter(str_detect(Commonname, speciesName), str_detect(Location, locationName)) 
+
+workingRES <- resData %>%
+  filter(str_detect(Commonname, speciesName)) 
+
+fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
+
 ```
 
+
+
+### Brydes whale
+
+
 ```{r}
+#| eval: false
+
+speciesName <- "Bryde"  
+locationName <- "Whole"
+inBootN <- 250
+
+
+workingData <- speciesData %>% 
+  filter(str_detect(Commonname, speciesName)) 
+
+workingRES <- resData %>%
+  filter(str_detect(Commonname, speciesName)) 
+
+fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
+
+
+locationName <- "North"
+
+workingData <- speciesData %>% 
+  filter(str_detect(Commonname, speciesName), str_detect(Location, locationName)) 
+
+workingRES <- resData %>%
+  filter(str_detect(Commonname, speciesName)) 
+
+fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
 
 locationName <- "Atlantic"
 
@@ -383,10 +379,11 @@ fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
 ### Fin whale
 
 ```{r}
+#| eval: false
 
 speciesName <- "Fin"  
 locationName <- "Whole"
-inBootN <- 10
+inBootN <- 250
 
 
 workingData <- speciesData %>% 
@@ -396,10 +393,6 @@ workingRES <- resData %>%
   filter(str_detect(Commonname, speciesName)) 
 
 fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
-
-```
-
-```{r}
 
 locationName <- "North"
 
@@ -410,10 +403,6 @@ workingRES <- resData %>%
   filter(str_detect(Commonname, speciesName)) 
 
 fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
-
-```
-
-```{r}
 
 locationName <- "Atlantic"
 
@@ -426,9 +415,6 @@ workingRES <- resData %>%
 
 fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
 
-```
-
-```{r}
 
 locationName <- "Northeast"
 
@@ -447,12 +433,12 @@ fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
 ### Humpback whale
 
 
-
 ```{r}
+#| eval: false
 
 speciesName <- "Hump"  
 locationName <- "Whole"
-inBootN <- 10
+inBootN <- 250
 
 
 workingData <- speciesData %>% 
@@ -462,10 +448,6 @@ workingRES <- resData %>%
   filter(str_detect(Commonname, speciesName)) 
 
 fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
-
-```
-
-```{r}
 
 locationName <- "North"
 
@@ -477,9 +459,6 @@ workingRES <- resData %>%
 
 fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
 
-```
-
-```{r}
 
 locationName <- "Atlantic"
 
@@ -492,9 +471,6 @@ workingRES <- resData %>%
 
 fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
 
-```
-
-```{r}
 locationName <- "Northeast"
 
 
@@ -512,10 +488,11 @@ fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
 
 
 ```{r}
+#| eval: false
 
 speciesName <- "minke"  
 locationName <- "Whole"
-inBootN <- 10
+inBootN <- 250
 
 
 workingData <- speciesData %>% 
@@ -525,10 +502,6 @@ workingRES <- resData %>%
   filter(str_detect(Commonname, speciesName)) 
 
 fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
-
-```
-
-```{r}
 
 locationName <- "North"
 
@@ -539,10 +512,6 @@ workingRES <- resData %>%
   filter(str_detect(Commonname, speciesName)) 
 
 fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
-
-```
-
-```{r}
 
 locationName <- "Atlantic"
 
@@ -555,9 +524,6 @@ workingRES <- resData %>%
 
 fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
 
-```
-
-```{r}
 locationName <- "Northeast"
 
 
@@ -578,7 +544,7 @@ fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
 
 speciesName <- "right"  
 locationName <- "North"
-inBootN <- 10
+inBootN <- 250
 
 
 workingData <- speciesData %>% 
@@ -596,10 +562,11 @@ fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
 
 
 ```{r}
+#| eval: false
 
 speciesName <- "Sei"  
 locationName <- "Whole"
-inBootN <- 10
+inBootN <- 250
 
 
 workingData <- speciesData %>% 
@@ -609,10 +576,6 @@ workingRES <- resData %>%
   filter(str_detect(Commonname, speciesName)) 
 
 fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
-
-```
-
-```{r}
 
 locationName <- "North"
 
@@ -624,9 +587,6 @@ workingRES <- resData %>%
 
 fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
 
-```
-
-```{r}
 
 locationName <- "Atlantic"
 
@@ -639,9 +599,6 @@ workingRES <- resData %>%
 
 fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
 
-```
-
-```{r}
 locationName <- "Northeast"
 
 
@@ -664,7 +621,8 @@ fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
 
 speciesName <- "Sperm"  
 locationName <- "Whole"
-inBootN <- 10
+inBootN <- 250
+inSeed <- 56456
 
 
 workingData <- speciesData %>% 
@@ -673,11 +631,7 @@ workingData <- speciesData %>%
 workingRES <- resData %>%
   filter(str_detect(Commonname, speciesName)) 
 
-fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
-
-```
-
-```{r}
+fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam", inSeed = inSeed)
 
 locationName <- "North"
 
@@ -688,10 +642,6 @@ workingRES <- resData %>%
   filter(str_detect(Commonname, speciesName)) 
 
 fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
-
-```
-
-```{r}
 
 locationName <- "Atlantic"
 
@@ -704,9 +654,6 @@ workingRES <- resData %>%
 
 fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
 
-```
-
-```{r}
 locationName <- "Northeast"
 
 
