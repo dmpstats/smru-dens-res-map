@@ -567,7 +567,7 @@ workingData <- speciesData %>%
 workingRES <- resData %>%
   filter(str_detect(Commonname, speciesName)) 
 
-fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
+fitFun_RW(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
 
 ```
 
