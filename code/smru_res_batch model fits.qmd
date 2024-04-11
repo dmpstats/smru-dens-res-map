@@ -356,35 +356,15 @@ inBootN <- 250
 
 
 workingData <- speciesData %>% 
-  filter(str_detect(Commonname, speciesName)) 
+  filter(str_detect(Commonname, speciesName),
+         !str_detect(Internal_reference, "033_Mullin"),
+         !str_detect(Internal_reference, "032_Garrison")
+  )
 
 workingRES <- resData %>%
   filter(str_detect(Commonname, speciesName)) 
 
 fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
-
-
-locationName <- "North"
-
-workingData <- speciesData %>% 
-  filter(str_detect(Commonname, speciesName), str_detect(Location, locationName)) 
-
-workingRES <- resData %>%
-  filter(str_detect(Commonname, speciesName)) 
-
-fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
-
-locationName <- "Atlantic"
-
-
-workingData <- speciesData %>% 
-  filter(str_detect(Commonname, speciesName), str_detect(Location, locationName)) 
-
-workingRES <- resData %>%
-  filter(str_detect(Commonname, speciesName)) 
-
-fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
-
 
 
 ```
