@@ -162,32 +162,17 @@ compData <- speciesData %>%
   speciesData <- read_csv("NE Atlantic Data/brydes_whale.csv") %>% 
     select(Commonname, RES, Density, Study_area)
   
-  whole <- read_csv("data/predictions/brydes_whole_predictions.csv") %>% 
+  whole <- read_csv("data/predictions/Bryde_Whole_predictions.csv") %>% 
     select(RES, PredDensity, CV) %>% 
     distinct()
-  
-  
-  atlantic <- read_csv("data/predictions/brydes_Atlantic_predictions.csv") %>% 
-    select(RES, PredDensity, CV) %>% 
-    distinct()
-  
-  north <- read_csv("data/predictions/brydes_North_predictions.csv") %>% 
-    select(RES, PredDensity, CV) %>% 
-    distinct()
+ 
   
   compData <- speciesData %>% 
     left_join(whole, by = "RES") %>% 
     rename(whole_pred = PredDensity, whole_CV = CV) %>% 
-    left_join(atlantic, by = "RES") %>% 
-    rename(atlantic_pred = PredDensity, atlantic_CV = CV) %>% 
-    left_join(north, by = "RES") %>% 
-    #filter(Study_area == "Y") %>% 
-    rename(north_pred = PredDensity, north_CV = CV) %>% 
-    mutate(wholeDiff = (whole_pred - Density)^2,
-           atlanticDiff = (atlantic_pred - Density)^2,
-           northDiff = (north_pred - Density)^2) %>% 
+    mutate(wholeDiff = (whole_pred - Density)^2) %>% 
     select(-contains("pred")) %>% 
-    pivot_longer(names_to = "source", values_to = "value", whole_CV:northDiff) 
+    pivot_longer(names_to = "source", values_to = "value", whole_CV:wholeDiff) 
   
   brydesSummaryData <- compData %>% 
     filter(RES != 0) %>% 
@@ -204,22 +189,22 @@ compData <- speciesData %>%
   speciesData <- read_csv("NE Atlantic Data/humpback_whale.csv") %>% 
     select(Commonname, RES, Density, Study_area)
   
-  whole <- read_csv("data/predictions/humpback_whole_predictions.csv") %>% 
+  whole <- read_csv("data/predictions/Hump_Whole_predictions.csv") %>% 
     select(RES, PredDensity, CV) %>% 
     distinct()
   
   
-  atlantic <- read_csv("data/predictions/humpback_Atlantic_predictions.csv") %>% 
+  atlantic <- read_csv("data/predictions/Hump_Atlantic_predictions.csv") %>% 
     select(RES, PredDensity, CV) %>% 
     distinct()
   
   
-  north <- read_csv("data/predictions/humpback_North_predictions.csv") %>% 
+  north <- read_csv("data/predictions/Hump_North_predictions.csv") %>% 
     select(RES, PredDensity, CV) %>% 
     distinct()
   
   
-  northEast <- read_csv("data/predictions/humpback_northeast_predictions.csv") %>% 
+  northEast <- read_csv("data/predictions/Hump_Northeast_predictions.csv") %>% 
     select(RES, PredDensity, CV) %>% 
     distinct()
   
