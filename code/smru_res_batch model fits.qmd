@@ -329,6 +329,17 @@ workingRES <- resData %>%
 
 fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
 
+locationName <- "Northeast"
+
+workingData <- speciesData %>% 
+  filter(str_detect(Commonname, speciesName), str_detect(Location, locationName)) 
+
+workingRES <- resData %>%
+  filter(str_detect(Commonname, speciesName)) 
+
+fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
+
+
 ```
 
 
@@ -373,6 +384,8 @@ workingRES <- resData %>%
   filter(str_detect(Commonname, speciesName)) 
 
 fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
+
+
 
 ```
 
