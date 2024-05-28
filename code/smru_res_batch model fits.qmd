@@ -26,7 +26,7 @@ RES spreadsheets to start.
 
 ```{r}
 
-infileList <- list.files(here("NE Atlantic Data/RES spreadsheets/"), recursive = F, full.names = T) 
+infileList <- list.files(here("NE Atlantic Data/RES spreadsheets2/"), recursive = F, full.names = T) 
 infileList <- infileList[str_detect(infileList, "\\.csv")]
 
 resDataList <- map(infileList, read_csv)
@@ -533,8 +533,12 @@ fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
 
 ### North atlantic right whale
 
+_refer later for proportional allocation_
 
 ```{r}
+#| eval: false
+#| include: false
+
 
 speciesName <- "right"  
 locationName <- "North"
@@ -661,3 +665,63 @@ workingRES <- resData %>%
 fitFun(speciesName, locationName, nBoot = inBootN, modelForm = "gam")
 
 ```
+
+
+### North Atlantic right whale
+
+NARW are modelled here by spreading population estimates over a reviewed/revised RES grid. Process is simple proportional allocation, based on abundance estimates from Pace et al, 2017, 2021).
+
+> The abundance estimate is derived from Pace’s models (references below FYI) from photo-ID data with latest estimate = 340 (95% credible interval 333-348 and 60% Credible Interval 337-344). (S. Simmons, pers. comm. 17/05/2024)
+
+
+
+```{r}
+
+workingRES <- read_csv(here::here("NE Atlantic Data/NARW_Suitable habitat_RES grid_NE Atlantic and IUCN.csv"))
+
+workingRES <- workingRES %>% 
+  mutate(areaRES = RES * Area,
+         propRES = areaRES/sum(areaRES),
+         PredDensity = 340*propRES/Area,
+         LowerPredDensity = 333*propRES/Area,
+         UpperPredDensity = 348*propRES/Area,
+         CV = (UpperPredDensity - LowerPredDensity)/(2*1.96)/PredDensity) # can simplify - but retain for readability
+
+
+```
+
+
+Exploratory plot to crudely check if the density calcs have been done correctly. 
+
+```{r}
+
+workingRES %>% 
+  ggplot(aes(x = left, y = top, fill = PredDensity)) +
+  geom_tile() +
+  coord_fixed() +
+  theme_minimal() +
+  scale_fill_viridis_c()
+
+
+```
+
+
+```{r}
+
+probs <- c(0.025, 0.2, 0.5, 0.8, 0.975); qqplot(c(333, 337, 340, 344, 348), qnorm(probs, 340, 15/(2*1.96))); abline(0, 1)
+
+```
+
+
+
+```{r}
+
+outputPreds <- workingRES %>% 
+  select(id:Area, PredDensity, CV)
+
+write_csv(outputPreds, here::here("data/predictions/NARW_NE atlantic and IUCN_predictions.csv"))
+
+
+```
+
+
